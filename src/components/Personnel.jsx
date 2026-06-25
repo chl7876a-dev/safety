@@ -30,9 +30,23 @@ function ExcelUploadZone({ onDataLoaded }) {
       try {
         const wb = XLSX.read(e.target.result, { type: 'array' })
         const ws = wb.Sheets[wb.SheetNames[0]]
-        const data = XLSX.utils.sheet_to_json(ws, { defval: '' })
-        onDataLoaded(data, file.name)
-      } catch {
+        // header:1 → 첫 번째 행을 헤더로 쓰지 않고 2D 배열로 먼저 가져와 헤더 키를 직접 확인
+        const raw = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false })
+
+        // ① 파싱 직후 — 실제 키가 무엇인지 콘솔로 확인
+        console.log('[Excel] 파싱된 행 수:', raw.length)
+        if (raw.length > 0) {
+          console.log('[Excel] 첫 번째 행 키:', Object.keys(raw[0]))
+          console.log('[Excel] 첫 번째 행 값:', raw[0])
+        }
+
+        if (raw.length === 0) {
+          setError('파일에 데이터가 없습니다. 첫 번째 행에 헤더가 있어야 합니다.')
+          return
+        }
+        onDataLoaded(raw, file.name)
+      } catch (err) {
+        console.error('[Excel] 파싱 오류:', err)
         setError('파일을 읽는 중 오류가 발생했습니다.')
       }
     }
@@ -217,7 +231,7 @@ function DirectInputForm({ onAdd }) {
 }
 
 /* ── 등록 목록 테이블 ── */
-function PersonnelTable({ rows, onExport }) {
+function PersonnelTable({ rows, rawHeaders }) {
   if (rows.length === 0) {
     return (
       <EmptyState
@@ -234,44 +248,109 @@ function PersonnelTable({ rows, onExport }) {
     color: '#3d4356', background: '#f8faff',
     borderBottom: '1px solid #e8ecf8', whiteSpace: 'nowrap',
   }
+  const tdStyle = { padding: '14px 20px', fontSize: '14px', color: '#3d4356', verticalAlign: 'middle' }
+
+  // 표준 필드가 모두 비어 있으면 원본 컬럼을 그대로 표시 (헤더 불일치 대응)
+  const excelRows  = rows.filter(r => r.source === 'excel')
+  const mappingOk  = excelRows.length === 0 ||
+    excelRows.some(r => r.name || r.department || r.role || r.email)
+  const showRaw    = !mappingOk && rawHeaders.length > 0
 
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '520px' }}>
-        <thead>
-          <tr>
-            {['성명', '부서', '직무', '이메일', '출처'].map(col => (
-              <th key={col} style={thStyle}>{col}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((p, i) => (
-            <tr key={p.id}
-              style={{ borderBottom: i < rows.length - 1 ? '1px solid #f0f2fa' : 'none' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#f5f7ff'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <td style={{ padding: '14px 20px', fontSize: '14px', fontWeight: 700, color: '#111c2d' }}>
-                {p.name || '—'}
-              </td>
-              <td style={{ padding: '14px 20px', fontSize: '14px', color: '#3d4356' }}>{p.department || '—'}</td>
-              <td style={{ padding: '14px 20px', fontSize: '14px', color: '#3d4356' }}>{p.role || '—'}</td>
-              <td style={{ padding: '14px 20px', fontSize: '13px', color: '#737784',
-                fontFamily: "'JetBrains Mono', monospace" }}>
-                {p.email || '—'}
-              </td>
-              <td style={{ padding: '14px 20px' }}>
-                <Badge color={p.source === 'excel' ? 'green' : 'blue'}>
-                  {p.source === 'excel' ? '엑셀' : '직접입력'}
-                </Badge>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div>
+      {/* 헤더 불일치 경고 */}
+      {showRaw && (
+        <div style={{ padding: '12px 20px', background: '#fffbeb', borderBottom: '1px solid #fde68a' }}>
+          <p style={{ fontSize: '13px', color: '#854d0e', margin: 0, fontWeight: 600 }}>
+            ⚠ 엑셀 헤더가 템플릿과 다릅니다. 인식된 컬럼: <strong>{rawHeaders.join(', ')}</strong>
+            <br />템플릿을 다운로드해 헤더를 맞춰 주시거나, 아래 원본 데이터를 확인하세요.
+          </p>
+        </div>
+      )}
+
+      <div style={{ overflowX: 'auto' }}>
+        {showRaw ? (
+          /* 원본 컬럼 그대로 표시 */
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '480px' }}>
+            <thead>
+              <tr>
+                {rawHeaders.map(h => <th key={h} style={thStyle}>{h}</th>)}
+                <th style={thStyle}>출처</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((p, i) => (
+                <tr key={p.id}
+                  style={{ borderBottom: i < rows.length - 1 ? '1px solid #f0f2fa' : 'none' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f5f7ff'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  {rawHeaders.map(h => (
+                    <td key={h} style={tdStyle}>{p._raw?.[h] ?? '—'}</td>
+                  ))}
+                  <td style={{ ...tdStyle, padding: '14px 20px' }}>
+                    <Badge color={p.source === 'excel' ? 'green' : 'blue'}>
+                      {p.source === 'excel' ? '엑셀' : '직접입력'}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          /* 표준 매핑 컬럼 표시 */
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '520px' }}>
+            <thead>
+              <tr>
+                {['성명', '부서', '직무', '이메일', '출처'].map(col => (
+                  <th key={col} style={thStyle}>{col}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((p, i) => (
+                <tr key={p.id}
+                  style={{ borderBottom: i < rows.length - 1 ? '1px solid #f0f2fa' : 'none' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f5f7ff'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <td style={{ ...tdStyle, fontWeight: 700, color: '#111c2d' }}>{p.name || '—'}</td>
+                  <td style={tdStyle}>{p.department || '—'}</td>
+                  <td style={tdStyle}>{p.role || '—'}</td>
+                  <td style={{ ...tdStyle, fontSize: '13px', color: '#737784',
+                    fontFamily: "'JetBrains Mono', monospace" }}>
+                    {p.email || '—'}
+                  </td>
+                  <td style={{ ...tdStyle }}>
+                    <Badge color={p.source === 'excel' ? 'green' : 'blue'}>
+                      {p.source === 'excel' ? '엑셀' : '직접입력'}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   )
+}
+
+/* ────────────────────────────────────────────────────────────
+   키 정규화: BOM·공백·대소문자를 제거한 뒤 후보 목록과 비교
+   ──────────────────────────────────────────────────────────── */
+const norm = (s) => String(s ?? '').replace(/^﻿/, '').trim().toLowerCase().replace(/\s+/g, '')
+
+const pick = (row, candidates) => {
+  const rowKeys = Object.keys(row)
+  for (const c of candidates) {
+    // 정확히 일치
+    if (row[c] !== undefined && row[c] !== '') return String(row[c])
+    // 정규화 후 비교
+    const matched = rowKeys.find(k => norm(k) === norm(c))
+    if (matched && row[matched] !== undefined && row[matched] !== '') return String(row[matched])
+  }
+  return ''
 }
 
 /* ── 메인 컴포넌트 ── */
@@ -279,21 +358,39 @@ export default function Personnel() {
   const [uploadedData,   setUploadedData]   = useState([])
   const [manualList,     setManualList]     = useState([])
   const [tab,            setTab]            = useState('upload')
+  const [rawHeaders,     setRawHeaders]     = useState([])   // 원본 헤더 보존
 
-  const handleDataLoaded = (data) => setUploadedData(data)
+  const handleDataLoaded = (data) => {
+    // ② 상태 업데이트 직전 확인
+    console.log('[State] setUploadedData 호출, 행 수:', data.length)
+    setUploadedData(data)
+    setRawHeaders(data.length > 0 ? Object.keys(data[0]) : [])
+  }
   const handleAddManual  = (person) => setManualList(prev => [...prev, person])
 
+  // ③ 렌더 시 매핑 확인 — pick()이 유연하게 여러 키 후보를 시도
   const allPersonnel = [
-    ...uploadedData.map((row, i) => ({
-      id: `upload-${i}`,
-      name:       row['성명'] || row['name'] || '',
-      department: row['부서'] || row['department'] || '',
-      role:       row['직무'] || row['role'] || '',
-      email:      row['이메일'] || row['email'] || '',
-      source: 'excel',
-    })),
+    ...uploadedData.map((row, i) => {
+      const mapped = {
+        id:         `upload-${i}`,
+        name:       pick(row, ['성명', '이름', 'name', 'Name', '담당자명']),
+        department: pick(row, ['부서', '팀', 'department', 'dept', 'Department']),
+        role:       pick(row, ['직무', '역할', '직책', 'role', 'Role', 'position']),
+        email:      pick(row, ['이메일', 'email', 'e-mail', 'Email', 'E-mail', '메일']),
+        phone:      pick(row, ['연락처', '전화', '휴대폰', 'phone', 'tel']),
+        site:       pick(row, ['사업장', '근무지', '위치', 'site', 'location']),
+        source:     'excel',
+        _raw:       row,   // 원본 보존 (디버그 + 알 수 없는 컬럼 표시용)
+      }
+      // ③ 첫 번째 행만 매핑 결과 출력
+      if (i === 0) console.log('[Mapping] 첫 번째 행 매핑 결과:', mapped)
+      return mapped
+    }),
     ...manualList.map(p => ({ ...p, source: 'manual' })),
   ]
+
+  // ④ 렌더 시 최종 배열 길이 확인
+  console.log('[Render] allPersonnel.length:', allPersonnel.length)
 
   const handleExport = () => {
     const ws = XLSX.utils.json_to_sheet(allPersonnel.map(p => ({
@@ -364,7 +461,7 @@ export default function Personnel() {
               )
             }
           />
-          <PersonnelTable rows={allPersonnel} />
+          <PersonnelTable rows={allPersonnel} rawHeaders={rawHeaders} />
         </Card>
 
       </div>
