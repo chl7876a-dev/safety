@@ -1,500 +1,369 @@
-/* ─────────────────────────────────────────────
-   색상 팔레트 (WCAG AA 기준 contrast ≥ 4.5:1)
-   ───────────────────────────────────────────── */
-const COLORS = {
-  primary:   '#094cb2',   // Deep Blue (AA ✓ on white)
-  teal:      '#0f766e',   // Teal-700  (AA ✓ on white)
-  amber:     '#b45309',   // Amber-700 (AA ✓ on white)
-  rose:      '#be123c',   // Rose-700  (AA ✓ on white)
-  text:      '#111c2d',   // on-surface
-  textSub:   '#3d4356',   // darker variant (AA ✓)
+import EmptyState from './ui/EmptyState'
+import Card, { CardHeader } from './ui/Card'
+import PageHeader from './ui/PageHeader'
+
+/* ── 색상 팔레트 (WCAG AA ✓) ── */
+const C = {
+  primary: '#094cb2',
+  teal:    '#0f766e',
+  amber:   '#b45309',
+  rose:    '#be123c',
+  text:    '#111c2d',
+  sub:     '#3d4356',
 }
 
-/* ─────────── KPI 카드 데이터 ─────────── */
-const stats = [
-  {
-    label: '전체 대상 회사',
-    value: '142',
-    unit: '개',
-    icon: 'business',
-    iconBg: '#dbeafe',
-    iconColor: COLORS.primary,
-    sub: '이번 달 +4 증가',
-    subIcon: 'trending_up',
-    subColor: '#15803d',        // green-700  AA ✓
-    accentColor: COLORS.primary,
-  },
-  {
-    label: '제출 완료',
-    value: '98',
-    unit: '건',
-    icon: 'task_alt',
-    iconBg: '#ccfbf1',
-    iconColor: COLORS.teal,
-    sub: '제출률 69%',
-    subColor: COLORS.textSub,
-    accentColor: COLORS.teal,
-  },
-  {
-    label: '검수 대기',
-    value: '24',
-    unit: '건',
-    icon: 'pending_actions',
-    iconBg: '#fef3c7',
-    iconColor: COLORS.amber,
-    sub: '평균 대기: 2.4일',
-    subColor: COLORS.textSub,
-    accentColor: COLORS.amber,
-  },
-  {
-    label: '최종 확정',
-    value: '1,204',
-    unit: '명',
-    icon: 'verified',
-    iconBg: '#ffe4e6',
-    iconColor: COLORS.rose,
-    sub: '연간 누적 총계',
-    subColor: COLORS.textSub,
-    accentColor: COLORS.rose,
-  },
+/* ── KPI 카드 틀 ── */
+const KPI_DEFS = [
+  { label: '전체 대상 회사', unit: '개',  icon: 'business',        iconBg: '#dbeafe', iconColor: C.primary, accentColor: C.primary },
+  { label: '제출 완료',     unit: '건',  icon: 'task_alt',         iconBg: '#ccfbf1', iconColor: C.teal,    accentColor: C.teal   },
+  { label: '검수 대기',     unit: '건',  icon: 'pending_actions',  iconBg: '#fef3c7', iconColor: C.amber,   accentColor: C.amber  },
+  { label: '최종 확정',     unit: '명',  icon: 'verified',         iconBg: '#ffe4e6', iconColor: C.rose,    accentColor: C.rose   },
 ]
 
-/* ─────────── 바 차트 데이터 ─────────── */
-const barData = [
-  { month: '1월', pct: 40 },
-  { month: '2월', pct: 55 },
-  { month: '3월', pct: 48 },
-  { month: '4월', pct: 72 },
-  { month: '5월', pct: 85 },
-  { month: '6월', pct: 92 },
-]
+/* ── KPI 카드 (값이 null이면 —/—) ── */
+function KpiCard({ def, value, sub }) {
+  const hasData = value !== null && value !== undefined
 
-/* ─────────── 도넛 범례 데이터 ─────────── */
-const donutLegend = [
-  { label: '준수 완료', pct: 94.2, color: COLORS.primary,  bg: '#dbeafe' },
-  { label: '개선 필요', pct: 4.1,  color: COLORS.amber,    bg: '#fef3c7' },
-  { label: '미제출',   pct: 1.7,  color: COLORS.rose,     bg: '#ffe4e6' },
-]
-
-/* ─────────── 최근 제출 테이블 ─────────── */
-const recentRows = [
-  { co: 'EcoLogistics Int.',  name: 'Sarah Chen',    date: '2026-06-24', status: '검수 완료', statusBg: '#dcfce7', statusColor: '#15803d' },
-  { co: 'SafeWork Korea',     name: '김민준',         date: '2026-06-23', status: '검수 중',   statusBg: '#fef9c3', statusColor: '#854d0e' },
-  { co: 'EnviroTech Co.',     name: '박지수',         date: '2026-06-22', status: '미제출',    statusBg: '#ffe4e6', statusColor: '#be123c' },
-  { co: 'GreenField Ltd.',    name: 'Marcus Thorne', date: '2026-06-21', status: '검수 완료', statusBg: '#dcfce7', statusColor: '#15803d' },
-]
-
-/* ─── 공통 섹션 레이블 ─── */
-function SectionLabel({ children }) {
-  return (
-    <p style={{ color: COLORS.textSub, fontSize: '12px', fontWeight: 700,
-      letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '14px' }}>
-      {children}
-    </p>
-  )
-}
-
-/* ─── KPI 카드 ─── */
-function KpiCard({ s }) {
   return (
     <div style={{
-      background: '#ffffff',
-      border: '1px solid #dde3f0',
-      borderRadius: '16px',
-      borderTop: `4px solid ${s.accentColor}`,
-      padding: '28px',
-      boxShadow: '0 2px 8px rgba(9,76,178,0.07), 0 1px 2px rgba(0,0,0,0.04)',
+      background: '#fff', border: '1px solid #dde3f0',
+      borderTop: `4px solid ${def.accentColor}`,
+      borderRadius: '16px', padding: '28px',
+      boxShadow: '0 2px 8px rgba(9,76,178,0.07)',
       transition: 'box-shadow 0.2s',
     }}
-      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 8px 24px rgba(9,76,178,0.12), 0 2px 4px rgba(0,0,0,0.06)'}
-      onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(9,76,178,0.07), 0 1px 2px rgba(0,0,0,0.04)'}
+      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 8px 24px rgba(9,76,178,0.13)'}
+      onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(9,76,178,0.07)'}
     >
-      {/* 라벨 + 아이콘 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-        <span style={{
-          fontSize: '13px', fontWeight: 700, color: COLORS.textSub,
-          lineHeight: '1.4', maxWidth: '68%', wordBreak: 'keep-all',
-        }}>
-          {s.label}
+        <span style={{ fontSize: '13px', fontWeight: 700, color: C.sub, lineHeight: 1.4, maxWidth: '68%' }}>
+          {def.label}
         </span>
         <div style={{
-          padding: '10px', borderRadius: '12px', background: s.iconBg,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          padding: '10px', borderRadius: '12px', background: def.iconBg,
+          display: 'flex', alignItems: 'center', flexShrink: 0,
         }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '22px', color: s.iconColor }}>
-            {s.icon}
+          <span className="material-symbols-outlined" style={{ fontSize: '22px', color: def.iconColor }}>
+            {def.icon}
           </span>
         </div>
       </div>
 
-      {/* 큰 숫자 */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '10px' }}>
-        <span style={{ fontSize: '2.75rem', fontWeight: 800, color: COLORS.text,
-          fontFamily: "'Noto Serif', serif", lineHeight: 1 }}>
-          {s.value}
-        </span>
-        <span style={{ fontSize: '15px', fontWeight: 600, color: COLORS.textSub }}>{s.unit}</span>
-      </div>
-
-      {/* 부연 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: s.subColor }}>
-        {s.subIcon && (
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{s.subIcon}</span>
-        )}
-        <span style={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.4 }}>{s.sub}</span>
-      </div>
+      {hasData ? (
+        <>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '10px' }}>
+            <span style={{ fontSize: '2.75rem', fontWeight: 800, color: C.text,
+              fontFamily: "'Noto Serif', serif", lineHeight: 1 }}>
+              {value}
+            </span>
+            <span style={{ fontSize: '15px', fontWeight: 600, color: C.sub }}>{def.unit}</span>
+          </div>
+          {sub && (
+            <p style={{ fontSize: '13px', fontWeight: 600, color: C.sub, margin: 0, lineHeight: 1.4 }}>{sub}</p>
+          )}
+        </>
+      ) : (
+        <div>
+          <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#c3c6d5', margin: '0 0 8px',
+            fontFamily: "'Noto Serif', serif" }}>
+            —
+          </p>
+          <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>데이터 없음</p>
+        </div>
+      )}
     </div>
   )
 }
 
-/* ─── 바 차트 ─── */
-function BarChart() {
-  const maxPct = Math.max(...barData.map(b => b.pct))
-  const yTicks = [0, 25, 50, 75, 100]
+/* ── 빈 차트 플레이스홀더 ── */
+function ChartPlaceholder({ title, subtitle, icon = 'bar_chart' }) {
+  return (
+    <Card>
+      <CardHeader title={title} subtitle={subtitle} />
+      <EmptyState
+        icon={icon}
+        title="데이터가 없습니다"
+        description="담당자 등록 및 제출 데이터가 쌓이면 차트가 자동으로 표시됩니다."
+      />
+    </Card>
+  )
+}
+
+/* ── 최근 제출 테이블 ── */
+function RecentTable({ rows }) {
+  if (!rows || rows.length === 0) {
+    return (
+      <Card>
+        <CardHeader title="최근 제출 현황" subtitle="최근 제출 이력" />
+        <EmptyState
+          icon="receipt_long"
+          title="제출 이력이 없습니다"
+          description="담당자가 서류를 제출하면 이곳에 현황이 표시됩니다."
+        />
+      </Card>
+    )
+  }
+
+  const STATUS_STYLE = {
+    '검수 완료': { bg: '#dcfce7', color: '#15803d' },
+    '검수 중':   { bg: '#fef9c3', color: '#854d0e' },
+    '미제출':    { bg: '#ffe4e6', color: '#be123c' },
+  }
 
   return (
-    <div style={{
-      background: '#ffffff', border: '1px solid #dde3f0', borderRadius: '16px',
-      boxShadow: '0 2px 8px rgba(9,76,178,0.07)',
-      overflow: 'hidden', gridColumn: 'span 2',
-    }}>
-      {/* 헤더 */}
-      <div style={{ padding: '20px 28px', borderBottom: '1px solid #dde3f0',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h4 style={{ fontFamily: "'Noto Serif', serif", fontWeight: 700,
-            fontSize: '17px', color: COLORS.text, margin: 0 }}>
-            월별 제출 추이
-          </h4>
-          <p style={{ fontSize: '13px', color: COLORS.textSub, marginTop: '4px', fontWeight: 500 }}>
-            2026년 1월 — 6월 · 단위: 건수(%)
-          </p>
-        </div>
-        <span className="material-symbols-outlined"
-          style={{ color: COLORS.textSub, cursor: 'pointer', fontSize: '22px' }}>
-          more_vert
-        </span>
-      </div>
-
-      {/* 차트 영역 */}
-      <div style={{ padding: '24px 28px 20px' }}>
-        <div style={{ position: 'relative', height: '220px' }}>
-
-          {/* Y축 눈금 선 */}
-          {yTicks.map(tick => (
-            <div key={tick} style={{
-              position: 'absolute', left: 0, right: 0,
-              bottom: `${tick}%`, display: 'flex', alignItems: 'center', gap: '10px',
-              transform: 'translateY(50%)', pointerEvents: 'none',
-            }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.textSub,
-                width: '28px', textAlign: 'right', flexShrink: 0 }}>
-                {tick}
-              </span>
-              <div style={{ flex: 1, borderTop: tick === 0
-                ? '2px solid #c3c6d5'
-                : '1px dashed #dde3f0' }} />
-            </div>
-          ))}
-
-          {/* 막대들 */}
-          <div style={{
-            position: 'absolute', inset: 0, paddingLeft: '44px',
-            display: 'flex', alignItems: 'flex-end', gap: '12px',
-          }}>
-            {barData.map((b) => {
-              const isMax = b.pct === maxPct
-              const opacity = 0.4 + (b.pct / 100) * 0.6
+    <Card>
+      <CardHeader
+        title="최근 제출 현황"
+        subtitle={`${rows.length}건`}
+        right={
+          <button style={{ fontSize: '13px', fontWeight: 700, color: C.primary,
+            background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            전체 보기
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
+          </button>
+        }
+      />
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '480px' }}>
+          <thead>
+            <tr style={{ background: '#f8faff', borderBottom: '1px solid #e8ecf8' }}>
+              {['회사', '담당자', '제출일', '상태'].map(col => (
+                <th key={col} style={{ padding: '13px 24px', textAlign: 'left',
+                  fontSize: '11px', fontWeight: 700, color: C.sub,
+                  letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => {
+              const st = STATUS_STYLE[row.status] ?? { bg: '#f1f5f9', color: '#3d4356' }
               return (
-                <div key={b.month} style={{
-                  flex: 1, display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', gap: '8px', height: '100%', justifyContent: 'flex-end',
-                }}>
-                  {/* 수치 레이블 — 항상 노출 */}
-                  <span style={{
-                    fontSize: '13px', fontWeight: 700,
-                    color: isMax ? COLORS.primary : COLORS.textSub,
-                    lineHeight: 1,
-                  }}>
-                    {b.pct}%
-                  </span>
-
-                  {/* 막대 */}
-                  <div
-                    title={`${b.month}: ${b.pct}%`}
-                    style={{
-                      width: '100%', minHeight: '6px', borderRadius: '6px 6px 0 0',
-                      height: `${b.pct}%`,
-                      background: isMax
-                        ? `linear-gradient(to top, ${COLORS.primary}, #3b76e8)`
-                        : `rgba(9,76,178,${opacity})`,
-                      transition: 'all 0.6s ease',
-                    }}
-                  />
-
-                  {/* 월 레이블 */}
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: COLORS.textSub }}>
-                    {b.month}
-                  </span>
-                </div>
+                <tr key={i} style={{ borderBottom: i < rows.length - 1 ? '1px solid #f0f2fa' : 'none' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f5f7ff'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <td style={{ padding: '17px 24px', fontSize: '14px', fontWeight: 700, color: C.text }}>{row.company}</td>
+                  <td style={{ padding: '17px 24px', fontSize: '14px', color: C.text }}>{row.name}</td>
+                  <td style={{ padding: '17px 24px', fontSize: '13px', color: C.sub,
+                    fontFamily: "'JetBrains Mono', monospace" }}>{row.date}</td>
+                  <td style={{ padding: '17px 24px' }}>
+                    <span style={{ background: st.bg, color: st.color,
+                      fontSize: '12px', fontWeight: 700, padding: '4px 12px',
+                      borderRadius: '999px', whiteSpace: 'nowrap' }}>
+                      {row.status}
+                    </span>
+                  </td>
+                </tr>
               )
             })}
-          </div>
-        </div>
+          </tbody>
+        </table>
       </div>
+    </Card>
+  )
+}
+
+/* ════════════════════════════════════════
+   메인 대시보드
+   props:
+     stats?       = { totalCompanies, submitted, pending, confirmed }
+     barData?     = [{ month, pct }]
+     donutPct?    = number (0~100)
+     recentRows?  = [{ company, name, date, status }]
+   ════════════════════════════════════════ */
+export default function Dashboard({
+  stats:     statData   = null,
+  barData:   barData    = null,
+  donutPct:  donutPct   = null,
+  recentRows: recentRows = null,
+}) {
+  const kpiValues = [
+    { value: statData?.totalCompanies ?? null, sub: statData?.totalCompaniesSub ?? null },
+    { value: statData?.submitted      ?? null, sub: statData?.submittedSub      ?? null },
+    { value: statData?.pending        ?? null, sub: statData?.pendingSub        ?? null },
+    { value: statData?.confirmed      ?? null, sub: statData?.confirmedSub      ?? null },
+  ]
+
+  const hasBarData   = Array.isArray(barData)   && barData.length   > 0
+  const hasDonut     = donutPct !== null
+  const hasRecent    = Array.isArray(recentRows) && recentRows.length > 0
+
+  return (
+    <div style={{ padding: '40px', maxWidth: '1440px', margin: '0 auto' }}>
+
+      {/* 페이지 헤더 */}
+      <PageHeader
+        title="운영자 대시보드"
+        subtitle="전체 사업장의 실시간 안전 및 환경 준수 상태를 모니터링합니다."
+        actions={
+          <button style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '12px 24px', background: C.primary, color: '#fff',
+            fontSize: '14px', fontWeight: 700, borderRadius: '12px',
+            border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+            boxShadow: '0 4px 12px rgba(9,76,178,0.3)', transition: 'all 0.2s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = '#0a3d94'}
+            onMouseLeave={e => e.currentTarget.style.background = C.primary}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>send</span>
+            미제출 대상 리마인더 발송
+          </button>
+        }
+      />
+
+      {/* 데이터 전혀 없을 때 전체 빈 상태 */}
+      {!statData && !hasBarData && !hasDonut && !hasRecent ? (
+        <Card>
+          <EmptyState
+            icon="monitoring"
+            title="아직 연동된 데이터가 없습니다"
+            description="담당자를 등록하고 제출 데이터가 쌓이면 대시보드 지표가 자동으로 채워집니다."
+            action={
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button style={{
+                  padding: '10px 24px', background: C.primary, color: '#fff',
+                  border: 'none', borderRadius: '10px', fontSize: '14px',
+                  fontWeight: 700, cursor: 'pointer',
+                }}>
+                  담당자 등록하기
+                </button>
+              </div>
+            }
+          />
+        </Card>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+
+          {/* KPI 카드 */}
+          <div>
+            <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em',
+              textTransform: 'uppercase', color: C.sub, marginBottom: '14px' }}>
+              주요 지표
+            </p>
+            <div style={{ display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+              {KPI_DEFS.map((def, i) => (
+                <KpiCard key={def.label} def={def}
+                  value={kpiValues[i].value} sub={kpiValues[i].sub} />
+              ))}
+            </div>
+          </div>
+
+          {/* 차트 영역 */}
+          <div>
+            <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em',
+              textTransform: 'uppercase', color: C.sub, marginBottom: '14px' }}>
+              현황 분석
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+              {hasBarData
+                ? <BarChart data={barData} />
+                : <ChartPlaceholder title="월별 제출 추이" subtitle="월별 제출 건수 추이" icon="bar_chart" />
+              }
+              {hasDonut
+                ? <DonutChart pct={donutPct} />
+                : <ChartPlaceholder title="안전 관리 준수율" subtitle="전체 사업장 기준" icon="donut_large" />
+              }
+            </div>
+          </div>
+
+          {/* 최근 제출 */}
+          <div>
+            <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em',
+              textTransform: 'uppercase', color: C.sub, marginBottom: '14px' }}>
+              최근 제출 현황
+            </p>
+            <RecentTable rows={recentRows} />
+          </div>
+
+        </div>
+      )}
     </div>
   )
 }
 
-/* ─── 도넛 차트 ─── */
-function DonutChart() {
-  const R = 46
-  const C = 2 * Math.PI * R
-  // 각 세그먼트: strokeDasharray = [해당 길이, 전체 둘레]
-  // offset 누적으로 위치 조정
-  let offset = 0
-  const segments = donutLegend.map((item) => {
-    const len = (item.pct / 100) * C
-    const seg = { ...item, len, offset }
-    offset += len
-    return seg
-  })
-
+/* ── 실 데이터가 있을 때만 렌더되는 바 차트 ── */
+function BarChart({ data }) {
+  const maxPct = Math.max(...data.map(b => b.pct))
   return (
-    <div style={{
-      background: '#ffffff', border: '1px solid #dde3f0', borderRadius: '16px',
-      boxShadow: '0 2px 8px rgba(9,76,178,0.07)', overflow: 'hidden',
-    }}>
-      {/* 헤더 */}
-      <div style={{ padding: '20px 28px', borderBottom: '1px solid #dde3f0' }}>
-        <h4 style={{ fontFamily: "'Noto Serif', serif", fontWeight: 700,
-          fontSize: '17px', color: COLORS.text, margin: 0 }}>
-          안전 관리 준수율
-        </h4>
-        <p style={{ fontSize: '13px', color: COLORS.textSub, marginTop: '4px', fontWeight: 500 }}>
-          전체 사업장 기준
-        </p>
-      </div>
-
-      <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '28px' }}>
-
-        {/* SVG 도넛 */}
-        <div style={{ position: 'relative', width: '172px', height: '172px' }}>
-          <svg viewBox="0 0 120 120" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
-            {/* 배경 트랙 */}
-            <circle cx="60" cy="60" r={R} fill="none" stroke="#e7eeff" strokeWidth="12" />
-            {/* 세그먼트 */}
-            {segments.map((seg) => (
-              <circle
-                key={seg.label}
-                cx="60" cy="60" r={R} fill="none"
-                stroke={seg.color}
-                strokeWidth="12"
-                strokeDasharray={`${seg.len} ${C}`}
-                strokeDashoffset={-seg.offset}
-                strokeLinecap="butt"
-              />
+    <Card>
+      <CardHeader title="월별 제출 추이" subtitle="단위: 건수(%)" />
+      <div style={{ padding: '24px 28px 20px' }}>
+        <div style={{ position: 'relative', height: '200px' }}>
+          {[0, 25, 50, 75, 100].map(tick => (
+            <div key={tick} style={{ position: 'absolute', left: 0, right: 0,
+              bottom: `${tick}%`, display: 'flex', alignItems: 'center', gap: '10px',
+              transform: 'translateY(50%)', pointerEvents: 'none' }}>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: C.sub, width: '24px', textAlign: 'right', flexShrink: 0 }}>{tick}</span>
+              <div style={{ flex: 1, borderTop: tick === 0 ? '2px solid #c3c6d5' : '1px dashed #e8ecf8' }} />
+            </div>
+          ))}
+          <div style={{ position: 'absolute', inset: 0, paddingLeft: '40px',
+            display: 'flex', alignItems: 'flex-end', gap: '10px' }}>
+            {data.map(b => (
+              <div key={b.month} style={{ flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: '6px', height: '100%', justifyContent: 'flex-end' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700,
+                  color: b.pct === maxPct ? C.primary : C.sub }}>{b.pct}%</span>
+                <div style={{
+                  width: '100%', minHeight: '4px', borderRadius: '6px 6px 0 0',
+                  height: `${b.pct}%`,
+                  background: b.pct === maxPct
+                    ? `linear-gradient(to top, ${C.primary}, #3b76e8)`
+                    : `rgba(9,76,178,${0.3 + (b.pct / 100) * 0.5})`,
+                }} />
+                <span style={{ fontSize: '12px', fontWeight: 600, color: C.sub }}>{b.month}</span>
+              </div>
             ))}
-          </svg>
-
-          {/* 중앙 텍스트 */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{
-              fontFamily: "'Noto Serif', serif", fontWeight: 800,
-              fontSize: '1.7rem', color: COLORS.text, lineHeight: 1,
-            }}>
-              94.2%
-            </span>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#15803d', marginTop: '4px' }}>
-              최적 상태
-            </span>
           </div>
         </div>
+      </div>
+    </Card>
+  )
+}
 
-        {/* 범례 */}
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {donutLegend.map((item) => (
+/* ── 실 데이터가 있을 때만 렌더되는 도넛 차트 ── */
+function DonutChart({ pct }) {
+  const R = 46, circumference = 2 * Math.PI * R
+  return (
+    <Card>
+      <CardHeader title="안전 관리 준수율" subtitle="전체 사업장 기준" />
+      <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
+        <div style={{ position: 'relative', width: '160px', height: '160px' }}>
+          <svg viewBox="0 0 120 120" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+            <circle cx="60" cy="60" r={R} fill="none" stroke="#e7eeff" strokeWidth="12" />
+            <circle cx="60" cy="60" r={R} fill="none" stroke={C.primary} strokeWidth="12"
+              strokeDasharray={`${circumference * (pct / 100)} ${circumference}`}
+              strokeLinecap="round" />
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex',
+            flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontFamily: "'Noto Serif', serif", fontWeight: 800,
+              fontSize: '1.6rem', color: C.text, lineHeight: 1 }}>{pct}%</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#15803d', marginTop: '4px' }}>준수 중</span>
+          </div>
+        </div>
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {[
+            { label: '준수 완료', color: C.primary, bg: '#dbeafe', value: `${pct}%` },
+            { label: '미준수',   color: C.rose,    bg: '#ffe4e6', value: `${(100 - pct).toFixed(1)}%` },
+          ].map(item => (
             <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{
-                  width: '12px', height: '12px', borderRadius: '50%',
-                  background: item.color, flexShrink: 0,
-                }} />
-                <span style={{ fontSize: '14px', fontWeight: 600, color: COLORS.textSub }}>
-                  {item.label}
-                </span>
-              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{
-                  background: item.bg, borderRadius: '6px',
-                  padding: '2px 8px',
-                }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: item.color }}>
-                    {item.pct}%
-                  </span>
-                </div>
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: item.color }} />
+                <span style={{ fontSize: '13px', fontWeight: 600, color: C.sub }}>{item.label}</span>
               </div>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: item.color,
+                background: item.bg, padding: '2px 8px', borderRadius: '6px' }}>
+                {item.value}
+              </span>
             </div>
           ))}
         </div>
-
       </div>
-    </div>
-  )
-}
-
-/* ─── 메인 대시보드 ─── */
-export default function Dashboard() {
-  return (
-    <section style={{ padding: '40px 40px', maxWidth: '1440px', margin: '0 auto' }}>
-
-      {/* ── 페이지 헤더 ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-        gap: '24px', flexWrap: 'wrap', marginBottom: '44px' }}>
-        <div>
-          <p style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.1em',
-            textTransform: 'uppercase', color: COLORS.primary, marginBottom: '8px' }}>
-            실시간 모니터링
-          </p>
-          <h3 style={{ fontFamily: "'Noto Serif', serif", fontWeight: 800,
-            fontSize: '2rem', color: COLORS.text, lineHeight: 1.2, margin: '0 0 10px' }}>
-            운영자 대시보드
-          </h3>
-          <p style={{ fontSize: '15px', color: COLORS.textSub, lineHeight: 1.7,
-            maxWidth: '480px', fontWeight: 500, margin: 0 }}>
-            전체 사업장의 실시간 안전 및 환경 준수 상태를 모니터링합니다.
-          </p>
-        </div>
-        <button style={{
-          display: 'flex', alignItems: 'center', gap: '8px',
-          padding: '12px 24px', background: COLORS.primary, color: '#fff',
-          fontSize: '14px', fontWeight: 700, borderRadius: '12px', border: 'none',
-          cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(9,76,178,0.3)',
-          transition: 'all 0.2s',
-        }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#0a3d94'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(9,76,178,0.4)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = COLORS.primary; e.currentTarget.style.boxShadow = '0 4px 12px rgba(9,76,178,0.3)' }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>send</span>
-          미제출 대상 리마인더 발송
-        </button>
-      </div>
-
-      {/* ── KPI 카드 그리드 ── */}
-      <div style={{ marginBottom: '44px' }}>
-        <SectionLabel>주요 지표</SectionLabel>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '20px',
-        }}>
-          {stats.map((s) => <KpiCard key={s.label} s={s} />)}
-        </div>
-      </div>
-
-      {/* ── 차트 ── */}
-      <div style={{ marginBottom: '44px' }}>
-        <SectionLabel>현황 분석</SectionLabel>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '20px',
-        }}>
-          <div style={{ gridColumn: 'span 2' }}>
-            <BarChart />
-          </div>
-          <DonutChart />
-        </div>
-      </div>
-
-      {/* ── 최근 제출 현황 ── */}
-      <div>
-        <SectionLabel>최근 제출 현황</SectionLabel>
-        <div style={{
-          background: '#ffffff', border: '1px solid #dde3f0', borderRadius: '16px',
-          boxShadow: '0 2px 8px rgba(9,76,178,0.07)', overflow: 'hidden',
-        }}>
-          {/* 테이블 헤더 */}
-          <div style={{ padding: '20px 28px', borderBottom: '1px solid #dde3f0',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h4 style={{ fontFamily: "'Noto Serif', serif", fontWeight: 700,
-                fontSize: '17px', color: COLORS.text, margin: 0 }}>
-                최근 제출 현황
-              </h4>
-              <p style={{ fontSize: '13px', color: COLORS.textSub, marginTop: '4px', fontWeight: 500 }}>
-                최근 4건 기준
-              </p>
-            </div>
-            <button style={{
-              display: 'flex', alignItems: 'center', gap: '4px',
-              fontSize: '14px', fontWeight: 700, color: COLORS.primary,
-              background: 'none', border: 'none', cursor: 'pointer',
-            }}>
-              전체 보기
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
-            </button>
-          </div>
-
-          {/* 오버플로 스크롤 (모바일 대응) */}
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '540px' }}>
-              <thead>
-                <tr style={{ background: '#f8faff', borderBottom: '1px solid #dde3f0' }}>
-                  {['회사', '담당자', '제출일', '상태'].map(col => (
-                    <th key={col} style={{
-                      padding: '14px 24px', textAlign: 'left',
-                      fontSize: '12px', fontWeight: 700, color: COLORS.textSub,
-                      letterSpacing: '0.07em', textTransform: 'uppercase',
-                    }}>
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {recentRows.map((row, i) => (
-                  <tr key={row.co} style={{
-                    borderBottom: i < recentRows.length - 1 ? '1px solid #f0f2fa' : 'none',
-                    transition: 'background 0.15s',
-                  }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#f5f7ff'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <td style={{ padding: '18px 24px', fontWeight: 700, fontSize: '15px',
-                      color: COLORS.text, maxWidth: '200px' }}>
-                      <span style={{ display: 'block', overflow: 'hidden',
-                        textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {row.co}
-                      </span>
-                    </td>
-                    <td style={{ padding: '18px 24px', fontSize: '15px', color: COLORS.text, fontWeight: 500 }}>
-                      {row.name}
-                    </td>
-                    <td style={{ padding: '18px 24px', fontSize: '14px', color: COLORS.textSub,
-                      fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }}>
-                      {row.date}
-                    </td>
-                    <td style={{ padding: '18px 24px' }}>
-                      <span style={{
-                        background: row.statusBg, color: row.statusColor,
-                        padding: '5px 12px', borderRadius: '999px',
-                        fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap',
-                      }}>
-                        {row.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-    </section>
+    </Card>
   )
 }
